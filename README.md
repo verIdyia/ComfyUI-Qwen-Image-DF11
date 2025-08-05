@@ -36,8 +36,8 @@ git lfs clone https://huggingface.co/Qwen/Qwen-Image
 git lfs clone https://huggingface.co/DFloat11/Qwen-Image-DF11
 ```
 
-**Method 2: Simple DFloat11 Only (Recommended for most users)**
-Just download the DFloat11 compressed model:
+**Method 2: Simple DFloat11 Only (Hybrid approach)**
+Download just the DFloat11 compressed transformer:
 ```bash
 cd ComfyUI/models/diffusion_models
 mkdir Qwen-Image-DF11
@@ -45,22 +45,29 @@ cd Qwen-Image-DF11
 # Download diffusion_pytorch_model.safetensors from DFloat11/Qwen-Image-DF11
 ```
 
-**Method 3: Full Model Structure**
-Create the following folder structure in `ComfyUI/models/diffusion_models/`:
+**Method 3: Full Local Model Structure (Offline)**
+Download and organize all components locally:
 ```
 diffusion_models/
 └── Qwen-Image/
     ├── transformer/
-    │   └── [transformer model files]
+    │   ├── config.json
+    │   └── diffusion_pytorch_model.safetensors (from DFloat11)
     ├── text_encoder/
-    │   └── [text encoder files]
+    │   └── [text encoder files from Qwen/Qwen-Image]
     ├── vae/
-    │   └── [VAE files]
-    └── df11/
-        └── [DFloat11 compressed files from DFloat11/Qwen-Image-DF11]
+    │   └── [VAE files from Qwen/Qwen-Image]
+    ├── tokenizer/
+    │   └── [tokenizer files from Qwen/Qwen-Image]
+    ├── scheduler/
+    │   └── [scheduler config from Qwen/Qwen-Image]
+    └── model_index.json
 ```
 
-**Note:** Method 2 only requires the `diffusion_pytorch_model.safetensors` file from the DFloat11 repository. The node will automatically load the config from the original Qwen-Image model online.
+**Important Notes:**
+- **Method 2**: Uses DFloat11 compressed transformer + downloads other components online (VAE, text encoder, etc.)
+- **Method 3**: Fully offline but requires downloading all components from the original Qwen-Image model
+- The transformer is the largest component (~28GB), so using DFloat11 compression saves significant space
 
 ### 3. Restart ComfyUI
 Restart ComfyUI to load the new nodes.

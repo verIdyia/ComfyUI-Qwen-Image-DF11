@@ -88,10 +88,11 @@ class DFloat11QwenImageLoader:
             )
             
         elif os.path.exists(df11_safetensors):
-            # Simple structure - just DFloat11 compressed files
-            # Load config from original Qwen model online for structure
+            # Simple structure - just DFloat11 compressed transformer
+            # Need to load other components from original model online
             model_name = "Qwen/Qwen-Image"
             
+            # Load transformer config and create model
             with no_init_weights():
                 transformer = QwenImageTransformer2DModel.from_config(
                     QwenImageTransformer2DModel.load_config(
@@ -99,7 +100,7 @@ class DFloat11QwenImageLoader:
                     ),
                 ).to(torch.bfloat16)
             
-            # Load DFloat11 compressed model from current folder
+            # Load DFloat11 compressed transformer weights
             DFloat11Model.from_pretrained(
                 full_model_path,
                 device="cpu",
@@ -108,10 +109,21 @@ class DFloat11QwenImageLoader:
                 bfloat16_model=transformer,
             )
             
-            # Load base pipeline from online but use our transformer
+            # Load other components from original model (VAE, text_encoder, tokenizer, scheduler)
+            print("Loading additional components from original Qwen-Image model...")
+            base_pipe = DiffusionPipeline.from_pretrained(
+                model_name,
+                torch_dtype=torch.bfloat16,
+            )
+            
+            # Create pipeline with DFloat11 transformer but original other components
             pipe = DiffusionPipeline.from_pretrained(
                 model_name,
-                transformer=transformer,
+                transformer=transformer,  # Use our DFloat11 compressed transformer
+                vae=base_pipe.vae,
+                text_encoder=base_pipe.text_encoder,
+                tokenizer=base_pipe.tokenizer,
+                scheduler=base_pipe.scheduler,
                 torch_dtype=torch.bfloat16,
             )
         else:
