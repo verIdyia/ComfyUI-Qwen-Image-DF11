@@ -54,35 +54,70 @@ class DFloat11QwenImageLoader:
         if not full_model_path:
             raise ValueError(f"Model not found: {model_path}")
         
-        # Load transformer model from local path
-        with no_init_weights():
-            transformer = QwenImageTransformer2DModel.from_config(
-                QwenImageTransformer2DModel.load_config(
-                    full_model_path, subfolder="transformer",
-                ),
-            ).to(torch.bfloat16)
-
-        # Load DFloat11 compressed model from local path
-        df11_path = os.path.join(full_model_path, "df11")
-        if not os.path.exists(df11_path):
-            raise ValueError(f"DFloat11 compressed model not found at: {df11_path}")
-            
-        DFloat11Model.from_pretrained(
-            df11_path,
-            device="cpu",
-            cpu_offload=cpu_offload,
-            pin_memory=pin_memory,
-            bfloat16_model=transformer,
-        )
-
-        # Load the diffusion pipeline from local path
-        pipe = DiffusionPipeline.from_pretrained(
-            full_model_path,
-            transformer=transformer,
-            torch_dtype=torch.bfloat16,
-        )
-        pipe.enable_model_cpu_offload()
+        # Check if we have a full model structure or just DFloat11 files
+        has_transformer_folder = os.path.exists(os.path.join(full_model_path, "transformer"))
+        df11_safetensors = os.path.join(full_model_path, "diffusion_pytorch_model.safetensors")
         
+        if has_transformer_folder:
+            # Full model structure with transformer subfolder
+            with no_init_weights():
+                transformer = QwenImageTransformer2DModel.from_config(
+                    QwenImageTransformer2DModel.load_config(
+                        full_model_path, subfolder="transformer",
+                    ),
+                ).to(torch.bfloat16)
+            
+            # Look for DFloat11 model in df11 subfolder
+            df11_path = os.path.join(full_model_path, "df11")
+            if not os.path.exists(df11_path):
+                raise ValueError(f"DFloat11 compressed model not found at: {df11_path}")
+                
+            DFloat11Model.from_pretrained(
+                df11_path,
+                device="cpu",
+                cpu_offload=cpu_offload,
+                pin_memory=pin_memory,
+                bfloat16_model=transformer,
+            )
+            
+            # Load the diffusion pipeline from local path
+            pipe = DiffusionPipeline.from_pretrained(
+                full_model_path,
+                transformer=transformer,
+                torch_dtype=torch.bfloat16,
+            )
+            
+        elif os.path.exists(df11_safetensors):
+            # Simple structure - just DFloat11 compressed files
+            # Load config from original Qwen model online for structure
+            model_name = "Qwen/Qwen-Image"
+            
+            with no_init_weights():
+                transformer = QwenImageTransformer2DModel.from_config(
+                    QwenImageTransformer2DModel.load_config(
+                        model_name, subfolder="transformer",
+                    ),
+                ).to(torch.bfloat16)
+            
+            # Load DFloat11 compressed model from current folder
+            DFloat11Model.from_pretrained(
+                full_model_path,
+                device="cpu",
+                cpu_offload=cpu_offload,
+                pin_memory=pin_memory,
+                bfloat16_model=transformer,
+            )
+            
+            # Load base pipeline from online but use our transformer
+            pipe = DiffusionPipeline.from_pretrained(
+                model_name,
+                transformer=transformer,
+                torch_dtype=torch.bfloat16,
+            )
+        else:
+            raise ValueError(f"No valid model files found in {full_model_path}. Expected either transformer subfolder or diffusion_pytorch_model.safetensors")
+        
+        pipe.enable_model_cpu_offload()
         return (pipe,)
 
 

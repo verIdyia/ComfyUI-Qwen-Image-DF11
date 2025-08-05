@@ -36,7 +36,16 @@ git lfs clone https://huggingface.co/Qwen/Qwen-Image
 git lfs clone https://huggingface.co/DFloat11/Qwen-Image-DF11
 ```
 
-**Method 2: Manual Download Structure**
+**Method 2: Simple DFloat11 Only (Recommended for most users)**
+Just download the DFloat11 compressed model:
+```bash
+cd ComfyUI/models/diffusion_models
+mkdir Qwen-Image-DF11
+cd Qwen-Image-DF11
+# Download diffusion_pytorch_model.safetensors from DFloat11/Qwen-Image-DF11
+```
+
+**Method 3: Full Model Structure**
 Create the following folder structure in `ComfyUI/models/diffusion_models/`:
 ```
 diffusion_models/
@@ -50,6 +59,8 @@ diffusion_models/
     └── df11/
         └── [DFloat11 compressed files from DFloat11/Qwen-Image-DF11]
 ```
+
+**Note:** Method 2 only requires the `diffusion_pytorch_model.safetensors` file from the DFloat11 repository. The node will automatically load the config from the original Qwen-Image model online.
 
 ### 3. Restart ComfyUI
 Restart ComfyUI to load the new nodes.
