@@ -1,0 +1,6 @@
+torch
+diffusers>=0.28.0
+transformers
+dfloat11[cuda12]
+Pillow
+numpy
