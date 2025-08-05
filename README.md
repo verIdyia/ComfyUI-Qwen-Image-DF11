@@ -47,4 +47,8 @@ This package uses the DFloat11 compressed version of Qwen-Image:
 
 ## License
 
-See the original Qwen-Image model license terms.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+The underlying Qwen-Image model is also licensed under Apache 2.0. Please refer to the original model's license terms:
+- [Qwen-Image](https://huggingface.co/Qwen/Qwen-Image) - Apache 2.0
+- [DFloat11/Qwen-Image-DF11](https://huggingface.co/DFloat11/Qwen-Image-DF11) - Please check the model's license on Hugging Face
