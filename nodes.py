@@ -54,80 +54,51 @@ class DFloat11QwenImageLoader:
         if not full_model_path:
             raise ValueError(f"Model not found: {model_path}")
         
-        # Check if we have a full model structure or just DFloat11 files
-        has_transformer_folder = os.path.exists(os.path.join(full_model_path, "transformer"))
-        df11_safetensors = os.path.join(full_model_path, "diffusion_pytorch_model.safetensors")
+        # Check for required components
+        required_components = ["transformer", "vae", "text_encoder", "tokenizer", "scheduler"]
+        missing_components = []
         
-        if has_transformer_folder:
-            # Full model structure with transformer subfolder
-            with no_init_weights():
-                transformer = QwenImageTransformer2DModel.from_config(
-                    QwenImageTransformer2DModel.load_config(
-                        full_model_path, subfolder="transformer",
-                    ),
-                ).to(torch.bfloat16)
-            
-            # Look for DFloat11 model in df11 subfolder
-            df11_path = os.path.join(full_model_path, "df11")
-            if not os.path.exists(df11_path):
-                raise ValueError(f"DFloat11 compressed model not found at: {df11_path}")
-                
-            DFloat11Model.from_pretrained(
-                df11_path,
-                device="cpu",
-                cpu_offload=cpu_offload,
-                pin_memory=pin_memory,
-                bfloat16_model=transformer,
-            )
-            
-            # Load the diffusion pipeline from local path
-            pipe = DiffusionPipeline.from_pretrained(
-                full_model_path,
-                transformer=transformer,
-                torch_dtype=torch.bfloat16,
-            )
-            
-        elif os.path.exists(df11_safetensors):
-            # Simple structure - just DFloat11 compressed transformer
-            # Need to load other components from original model online
-            model_name = "Qwen/Qwen-Image"
-            
-            # Load transformer config and create model
-            with no_init_weights():
-                transformer = QwenImageTransformer2DModel.from_config(
-                    QwenImageTransformer2DModel.load_config(
-                        model_name, subfolder="transformer",
-                    ),
-                ).to(torch.bfloat16)
-            
+        for component in required_components:
+            component_path = os.path.join(full_model_path, component)
+            if not os.path.exists(component_path):
+                missing_components.append(component)
+        
+        if missing_components:
+            raise ValueError(f"Missing required components in {full_model_path}: {missing_components}. Please download the complete Qwen-Image model structure.")
+        
+        # Check if model_index.json exists
+        model_index_path = os.path.join(full_model_path, "model_index.json")
+        if not os.path.exists(model_index_path):
+            raise ValueError(f"model_index.json not found in {full_model_path}. Please download the complete model.")
+        
+        # Load transformer config and create model
+        with no_init_weights():
+            transformer = QwenImageTransformer2DModel.from_config(
+                QwenImageTransformer2DModel.load_config(
+                    full_model_path, subfolder="transformer",
+                ),
+            ).to(torch.bfloat16)
+        
+        # Check if we have DFloat11 compressed transformer
+        df11_transformer_path = os.path.join(full_model_path, "transformer", "diffusion_pytorch_model.safetensors")
+        if os.path.exists(df11_transformer_path):
             # Load DFloat11 compressed transformer weights
             DFloat11Model.from_pretrained(
-                full_model_path,
+                os.path.join(full_model_path, "transformer"),
                 device="cpu",
                 cpu_offload=cpu_offload,
                 pin_memory=pin_memory,
                 bfloat16_model=transformer,
             )
-            
-            # Load other components from original model (VAE, text_encoder, tokenizer, scheduler)
-            print("Loading additional components from original Qwen-Image model...")
-            base_pipe = DiffusionPipeline.from_pretrained(
-                model_name,
-                torch_dtype=torch.bfloat16,
-            )
-            
-            # Create pipeline with DFloat11 transformer but original other components
-            pipe = DiffusionPipeline.from_pretrained(
-                model_name,
-                transformer=transformer,  # Use our DFloat11 compressed transformer
-                vae=base_pipe.vae,
-                text_encoder=base_pipe.text_encoder,
-                tokenizer=base_pipe.tokenizer,
-                scheduler=base_pipe.scheduler,
-                torch_dtype=torch.bfloat16,
-            )
         else:
-            raise ValueError(f"No valid model files found in {full_model_path}. Expected either transformer subfolder or diffusion_pytorch_model.safetensors")
+            raise ValueError(f"DFloat11 compressed transformer not found at: {df11_transformer_path}")
+        
+        # Load the complete diffusion pipeline from local path
+        pipe = DiffusionPipeline.from_pretrained(
+            full_model_path,
+            transformer=transformer,
+            torch_dtype=torch.bfloat16,
+        )
         
         pipe.enable_model_cpu_offload()
         return (pipe,)

@@ -27,47 +27,60 @@ pip install -r requirements.txt
 ```
 
 ### 2. Download Models
-Download the Qwen-Image models and place them in your ComfyUI models folder:
+Download the complete Qwen-Image model structure with DFloat11 compressed transformer:
 
-**Method 1: Using Git LFS (Recommended)**
+**Required Model Structure:**
+```
+ComfyUI/models/diffusion_models/
+└── Qwen-Image/
+    ├── model_index.json              # From Qwen/Qwen-Image
+    ├── transformer/
+    │   ├── config.json               # From Qwen/Qwen-Image
+    │   └── diffusion_pytorch_model.safetensors  # From DFloat11/Qwen-Image-DF11
+    ├── text_encoder/
+    │   ├── config.json               # From Qwen/Qwen-Image
+    │   ├── model.safetensors         # From Qwen/Qwen-Image
+    │   └── ...
+    ├── vae/
+    │   ├── config.json               # From Qwen/Qwen-Image
+    │   ├── diffusion_pytorch_model.safetensors  # From Qwen/Qwen-Image
+    │   └── ...
+    ├── tokenizer/
+    │   ├── tokenizer_config.json     # From Qwen/Qwen-Image
+    │   ├── tokenizer.json            # From Qwen/Qwen-Image
+    │   └── ...
+    └── scheduler/
+        └── scheduler_config.json     # From Qwen/Qwen-Image
+```
+
+**Installation Steps:**
+
+1. **Download base model structure:**
 ```bash
 cd ComfyUI/models/diffusion_models
 git lfs clone https://huggingface.co/Qwen/Qwen-Image
-git lfs clone https://huggingface.co/DFloat11/Qwen-Image-DF11
 ```
 
-**Method 2: Simple DFloat11 Only (Hybrid approach)**
-Download just the DFloat11 compressed transformer:
+2. **Replace transformer with DFloat11 compressed version:**
 ```bash
-cd ComfyUI/models/diffusion_models
-mkdir Qwen-Image-DF11
-cd Qwen-Image-DF11
-# Download diffusion_pytorch_model.safetensors from DFloat11/Qwen-Image-DF11
+cd Qwen-Image/transformer
+# Backup original transformer (optional)
+mv diffusion_pytorch_model.safetensors diffusion_pytorch_model.safetensors.backup
+# Download DFloat11 compressed transformer
+wget https://huggingface.co/DFloat11/Qwen-Image-DF11/resolve/main/diffusion_pytorch_model.safetensors
 ```
 
-**Method 3: Full Local Model Structure (Offline)**
-Download and organize all components locally:
-```
-diffusion_models/
-└── Qwen-Image/
-    ├── transformer/
-    │   ├── config.json
-    │   └── diffusion_pytorch_model.safetensors (from DFloat11)
-    ├── text_encoder/
-    │   └── [text encoder files from Qwen/Qwen-Image]
-    ├── vae/
-    │   └── [VAE files from Qwen/Qwen-Image]
-    ├── tokenizer/
-    │   └── [tokenizer files from Qwen/Qwen-Image]
-    ├── scheduler/
-    │   └── [scheduler config from Qwen/Qwen-Image]
-    └── model_index.json
+**OR using Hugging Face Hub:**
+```python
+from huggingface_hub import hf_hub_download
+hf_hub_download("DFloat11/Qwen-Image-DF11", "diffusion_pytorch_model.safetensors", 
+                local_dir="ComfyUI/models/diffusion_models/Qwen-Image/transformer")
 ```
 
-**Important Notes:**
-- **Method 2**: Uses DFloat11 compressed transformer + downloads other components online (VAE, text encoder, etc.)
-- **Method 3**: Fully offline but requires downloading all components from the original Qwen-Image model
-- The transformer is the largest component (~28GB), so using DFloat11 compression saves significant space
+**Memory Benefits:**
+- Original transformer: ~41GB
+- DFloat11 compressed: ~28GB (32% size reduction)
+- Other components remain unchanged for compatibility
 
 ### 3. Restart ComfyUI
 Restart ComfyUI to load the new nodes.
