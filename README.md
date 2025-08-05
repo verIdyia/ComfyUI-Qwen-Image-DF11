@@ -13,19 +13,46 @@ ComfyUI custom nodes for the DFloat11 compressed Qwen-Image model. This package 
 
 ## Installation
 
-1. Clone this repository into your ComfyUI custom_nodes directory:
+### 1. Install Custom Nodes
+Clone this repository into your ComfyUI custom_nodes directory:
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/yourusername/ComfyUI-Qwen-Image-DF11.git
+git clone https://github.com/verIdyia/ComfyUI-Qwen-Image-DF11.git
 ```
 
-2. Install dependencies:
+Install dependencies:
 ```bash
 cd ComfyUI-Qwen-Image-DF11
 pip install -r requirements.txt
 ```
 
-3. Restart ComfyUI
+### 2. Download Models
+Download the Qwen-Image models and place them in your ComfyUI models folder:
+
+**Method 1: Using Git LFS (Recommended)**
+```bash
+cd ComfyUI/models/diffusion_models
+git lfs clone https://huggingface.co/Qwen/Qwen-Image
+git lfs clone https://huggingface.co/DFloat11/Qwen-Image-DF11
+```
+
+**Method 2: Manual Download Structure**
+Create the following folder structure in `ComfyUI/models/diffusion_models/`:
+```
+diffusion_models/
+└── Qwen-Image/
+    ├── transformer/
+    │   └── [transformer model files]
+    ├── text_encoder/
+    │   └── [text encoder files]
+    ├── vae/
+    │   └── [VAE files]
+    └── df11/
+        └── [DFloat11 compressed files from DFloat11/Qwen-Image-DF11]
+```
+
+### 3. Restart ComfyUI
+Restart ComfyUI to load the new nodes.
 
 ## Memory Requirements
 

@@ -11,8 +11,23 @@ from PIL import Image
 class DFloat11QwenImageLoader:
     @classmethod
     def INPUT_TYPES(s):
+        # Get available Qwen models from the diffusion_models folder
+        qwen_models = []
+        diffusion_models_path = folder_paths.get_folder_paths("diffusion_models")
+        
+        for path in diffusion_models_path:
+            if os.path.exists(path):
+                for item in os.listdir(path):
+                    item_path = os.path.join(path, item)
+                    if os.path.isdir(item_path) and "qwen" in item.lower():
+                        qwen_models.append(item)
+        
+        if not qwen_models:
+            qwen_models = ["Place Qwen models in ComfyUI/models/diffusion_models/"]
+        
         return {
             "required": {
+                "model_path": (qwen_models, {"default": qwen_models[0] if qwen_models else ""}),
                 "cpu_offload": ("BOOLEAN", {"default": False}),
                 "pin_memory": ("BOOLEAN", {"default": True}),
             }
@@ -22,26 +37,47 @@ class DFloat11QwenImageLoader:
     FUNCTION = "load_model"
     CATEGORY = "Qwen-Image"
 
-    def load_model(self, cpu_offload, pin_memory):
-        model_name = "Qwen/Qwen-Image"
+    def load_model(self, model_path, cpu_offload, pin_memory):
+        if "Place Qwen models" in model_path:
+            raise ValueError("Please download Qwen-Image model to ComfyUI/models/diffusion_models/ folder")
         
+        # Find the full path to the model
+        diffusion_models_path = folder_paths.get_folder_paths("diffusion_models")
+        full_model_path = None
+        
+        for path in diffusion_models_path:
+            candidate_path = os.path.join(path, model_path)
+            if os.path.exists(candidate_path):
+                full_model_path = candidate_path
+                break
+        
+        if not full_model_path:
+            raise ValueError(f"Model not found: {model_path}")
+        
+        # Load transformer model from local path
         with no_init_weights():
             transformer = QwenImageTransformer2DModel.from_config(
                 QwenImageTransformer2DModel.load_config(
-                    model_name, subfolder="transformer",
+                    full_model_path, subfolder="transformer",
                 ),
             ).to(torch.bfloat16)
 
+        # Load DFloat11 compressed model from local path
+        df11_path = os.path.join(full_model_path, "df11")
+        if not os.path.exists(df11_path):
+            raise ValueError(f"DFloat11 compressed model not found at: {df11_path}")
+            
         DFloat11Model.from_pretrained(
-            "DFloat11/Qwen-Image-DF11",
+            df11_path,
             device="cpu",
             cpu_offload=cpu_offload,
             pin_memory=pin_memory,
             bfloat16_model=transformer,
         )
 
+        # Load the diffusion pipeline from local path
         pipe = DiffusionPipeline.from_pretrained(
-            model_name,
+            full_model_path,
             transformer=transformer,
             torch_dtype=torch.bfloat16,
         )
