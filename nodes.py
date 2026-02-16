@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from diffusers import DiffusionPipeline, QwenImageTransformer2DModel
+from diffusers import QwenImagePipeline, QwenImageTransformer2DModel
 from transformers.modeling_utils import no_init_weights
 from dfloat11 import DFloat11Model
 import folder_paths
@@ -94,13 +94,17 @@ class DFloat11QwenImageLoader:
             raise ValueError(f"DFloat11 compressed transformer not found at: {df11_transformer_path}")
         
         # Load the complete diffusion pipeline from local path
-        pipe = DiffusionPipeline.from_pretrained(
+        pipe = QwenImagePipeline.from_pretrained(
             full_model_path,
             transformer=transformer,
             torch_dtype=torch.bfloat16,
         )
         
-        pipe.enable_model_cpu_offload()
+        if cpu_offload:
+            pipe.enable_model_cpu_offload()
+        else:
+            pipe.to("cuda")
+        
         return (pipe,)
 
 
