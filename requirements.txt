@@ -1,6 +1,6 @@
 torch
-diffusers>=0.28.0
-transformers
+diffusers>=0.35.0
+transformers>=4.51.3
 dfloat11[cuda12]
 Pillow
 numpy
