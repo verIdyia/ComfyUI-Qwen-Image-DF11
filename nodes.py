@@ -163,15 +163,16 @@ class QwenImageSampler:
     def sample(self, model, positive, negative, width, height, steps, cfg, seed):
         generator = torch.Generator(device="cuda").manual_seed(seed)
         
-        image = model(
-            prompt=positive,
-            negative_prompt=negative,
-            width=width,
-            height=height,
-            num_inference_steps=steps,
-            true_cfg_scale=cfg,
-            generator=generator
-        ).images[0]
+        with torch.inference_mode():
+            image = model(
+                prompt=positive,
+                negative_prompt=negative,
+                width=width,
+                height=height,
+                num_inference_steps=steps,
+                true_cfg_scale=cfg,
+                generator=generator
+            ).images[0]
         
         # Convert PIL image to tensor for ComfyUI
         image_np = np.array(image).astype(np.float32) / 255.0
@@ -197,7 +198,7 @@ class QwenImageDecode:
 
     def decode_image(self, image, filename_prefix):
         # Convert tensor back to PIL and save
-        image_np = (image.squeeze(0).numpy() * 255).astype(np.uint8)
+        image_np = (image.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
         pil_image = Image.fromarray(image_np)
         
         output_dir = folder_paths.get_output_directory()
@@ -273,15 +274,16 @@ class QwenImagePresetSampler:
         
         generator = torch.Generator(device="cuda").manual_seed(seed)
         
-        image = model(
-            prompt=positive,
-            negative_prompt=" ",
-            width=width,
-            height=height,
-            num_inference_steps=preset_config["steps"],
-            true_cfg_scale=preset_config["cfg"],
-            generator=generator
-        ).images[0]
+        with torch.inference_mode():
+            image = model(
+                prompt=positive,
+                negative_prompt=" ",
+                width=width,
+                height=height,
+                num_inference_steps=preset_config["steps"],
+                true_cfg_scale=preset_config["cfg"],
+                generator=generator
+            ).images[0]
         
         # Convert PIL image to tensor for ComfyUI
         image_np = np.array(image).astype(np.float32) / 255.0
