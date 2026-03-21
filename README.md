@@ -1,112 +1,127 @@
 # ComfyUI Qwen-Image DFloat11 Nodes
 
-ComfyUI custom nodes for the DFloat11 compressed Qwen-Image model. This package provides efficient image generation with reduced memory usage through DFloat11 compression technology.
+ComfyUI custom nodes for the **DFloat11 compressed Qwen-Image** model. Generate high-quality images with 32% less memory through lossless DFloat11 compression — bit-identical outputs to the original model.
 
-## Features
+## Nodes
 
-- **DFloat11 Qwen-Image Loader**: Load the compressed Qwen-Image model with CPU offloading options
-- **Qwen-Image Text Encode**: Process text prompts with language-specific magic prompts
-- **Qwen-Image Sampler**: Generate images with full control over parameters
-- **Qwen-Image Decode**: Save generated images to output directory
-- **Qwen-Image Aspect Ratio**: Quick aspect ratio selection for common formats
-- **Qwen-Image Preset Sampler**: Fast generation with preset configurations
+| Node | Description |
+|------|-------------|
+| **DFloat11 Qwen-Image Loader** | Load the compressed model with optional CPU offloading |
+| **Qwen-Image Text Encode** | Process text prompts with optional quality-boosting magic prompt |
+| **Qwen-Image Sampler** | Generate images with full parameter control (steps, CFG, size, batch) |
+| **Qwen-Image Aspect Ratio** | Quick preset aspect ratios (1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, 21:9) |
+| **Qwen-Image Preset (All-in-One)** | Single-node generation with quality presets (draft/fast/balanced/quality/max) |
 
 ## Installation
 
 ### 1. Install Custom Nodes
-Clone this repository into your ComfyUI custom_nodes directory:
+
+**Via ComfyUI Manager (recommended):**
+Search for "Qwen-Image-DF11" in ComfyUI Manager and install.
+
+**Manual:**
 ```bash
 cd ComfyUI/custom_nodes
 git clone https://github.com/verIdyia/ComfyUI-Qwen-Image-DF11.git
-```
-
-Install dependencies:
-```bash
 cd ComfyUI-Qwen-Image-DF11
 pip install -r requirements.txt
 ```
 
 ### 2. Download Models
-Download the complete Qwen-Image model structure with DFloat11 compressed transformer:
 
-**Required Model Structure:**
+Set up the model directory structure in `ComfyUI/models/diffusion_models/`:
+
 ```
-ComfyUI/models/diffusion_models/
-└── Qwen-Image/
-    ├── model_index.json              # From Qwen/Qwen-Image
-    ├── transformer/
-    │   ├── config.json               # From Qwen/Qwen-Image
-    │   └── diffusion_pytorch_model.safetensors  # From DFloat11/Qwen-Image-DF11
-    ├── text_encoder/
-    │   ├── config.json               # From Qwen/Qwen-Image
-    │   ├── model.safetensors         # From Qwen/Qwen-Image
-    │   └── ...
-    ├── vae/
-    │   ├── config.json               # From Qwen/Qwen-Image
-    │   ├── diffusion_pytorch_model.safetensors  # From Qwen/Qwen-Image
-    │   └── ...
-    ├── tokenizer/
-    │   ├── tokenizer_config.json     # From Qwen/Qwen-Image
-    │   ├── tokenizer.json            # From Qwen/Qwen-Image
-    │   └── ...
-    └── scheduler/
-        └── scheduler_config.json     # From Qwen/Qwen-Image
+Qwen-Image/
+├── model_index.json              # From Qwen/Qwen-Image
+├── transformer/
+│   ├── config.json               # From Qwen/Qwen-Image
+│   └── diffusion_pytorch_model.safetensors  # From DFloat11/Qwen-Image-DF11
+├── text_encoder/                 # From Qwen/Qwen-Image
+├── vae/                          # From Qwen/Qwen-Image
+├── tokenizer/                    # From Qwen/Qwen-Image
+└── scheduler/                    # From Qwen/Qwen-Image
 ```
 
-**Installation Steps:**
-
-1. **Download base model structure:**
+**Step 1 — Download the base model:**
 ```bash
 cd ComfyUI/models/diffusion_models
 git lfs clone https://huggingface.co/Qwen/Qwen-Image
 ```
 
-2. **Replace transformer with DFloat11 compressed version:**
+**Step 2 — Replace the transformer with the DFloat11 version:**
 ```bash
 cd Qwen-Image/transformer
-# Backup original transformer (optional)
 mv diffusion_pytorch_model.safetensors diffusion_pytorch_model.safetensors.backup
-# Download DFloat11 compressed transformer
 wget https://huggingface.co/DFloat11/Qwen-Image-DF11/resolve/main/diffusion_pytorch_model.safetensors
 ```
 
-**OR using Hugging Face Hub:**
+**Step 3 — Merge config files** (required for DFloat11 loading):
 ```python
+import json
 from huggingface_hub import hf_hub_download
-hf_hub_download("DFloat11/Qwen-Image-DF11", "diffusion_pytorch_model.safetensors", 
-                local_dir="ComfyUI/models/diffusion_models/Qwen-Image/transformer")
+
+# Download DFloat11 config
+df11_config_path = hf_hub_download("DFloat11/Qwen-Image-DF11", "config.json")
+with open(df11_config_path) as f:
+    df11_config = json.load(f)
+
+# Merge with existing Qwen transformer config
+config_path = "ComfyUI/models/diffusion_models/Qwen-Image/transformer/config.json"
+with open(config_path) as f:
+    qwen_config = json.load(f)
+
+merged = {**qwen_config, **df11_config}
+with open(config_path, "w") as f:
+    json.dump(merged, f, indent=2)
 ```
 
-**Memory Benefits:**
-- Original transformer: ~41GB
-- DFloat11 compressed: ~28GB (32% size reduction)
-- Other components remain unchanged for compatibility
-
 ### 3. Restart ComfyUI
-Restart ComfyUI to load the new nodes.
 
 ## Memory Requirements
 
-- **Without CPU Offloading**: 32GB VRAM required
-- **With CPU Offloading**: 16GB VRAM required
-- Model Size: 28.42 GB (32% smaller than original BFloat16)
+### VRAM (GPU)
 
-## Usage
+| Mode | VRAM Required | Peak VRAM |
+|------|--------------|-----------|
+| CPU Offload ON | 16 GB+ | ~16.7 GB |
+| CPU Offload OFF | 32 GB+ | ~29.7 GB |
 
-See the included example workflow JSON file for a complete setup example.
+### System RAM
 
-## Model Information
+| | Minimum | Recommended |
+|---|---------|-------------|
+| **RAM** | **96 GB** | **128 GB** |
 
-This package uses the DFloat11 compressed version of Qwen-Image:
-- Model: `DFloat11/Qwen-Image-DF11`
-- Original: `Qwen/Qwen-Image`
-- Compression: Lossless 32% size reduction
-- Performance: Bit-identical outputs to original model
+> **Important:** During model loading, the system needs ~68 GB of RAM simultaneously (41 GB model shell + 27 GB compressed weights). 64 GB is insufficient and will crash on Windows. 96 GB works with headroom; 128 GB is ideal. Linux with 64 GB may work due to mmap overcommit, but is not guaranteed.
+
+- Qwen-Image: 20.4B parameter model (bf16 = 41 GB)
+- DFloat11 compressed transformer: **28.42 GB** (32% smaller than original)
+- Text encoder (Qwen2.5-VL-7B): ~16 GB additional
+- Lossless compression — produces bit-identical outputs
+
+## Preset Quality Modes
+
+| Preset | Steps | CFG | Use Case |
+|--------|-------|-----|----------|
+| draft | 12 | 3.0 | Quick previews |
+| fast | 20 | 3.5 | Rapid iteration |
+| balanced | 50 | 4.0 | General use |
+| quality | 80 | 4.5 | High quality |
+| max_quality | 100 | 5.0 | Best possible output |
+
+## Requirements
+
+- **System RAM**: 64 GB minimum, 128 GB recommended
+- **GPU**: NVIDIA with 16+ GB VRAM (32+ GB without CPU offload)
+- **CUDA**: 12.1+
+- **Python**: 3.10+
+- **Disk**: ~43 GB for model files
+- diffusers >= 0.35.0, transformers >= 4.51.3, dfloat11[cuda12]
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+Apache License 2.0 — see [LICENSE](LICENSE).
 
-The underlying Qwen-Image model is also licensed under Apache 2.0. Please refer to the original model's license terms:
-- [Qwen-Image](https://huggingface.co/Qwen/Qwen-Image) - Apache 2.0
-- [DFloat11/Qwen-Image-DF11](https://huggingface.co/DFloat11/Qwen-Image-DF11) - Please check the model's license on Hugging Face
+- [Qwen-Image](https://huggingface.co/Qwen/Qwen-Image) — Apache 2.0
+- [DFloat11/Qwen-Image-DF11](https://huggingface.co/DFloat11/Qwen-Image-DF11) — See model license
